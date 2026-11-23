@@ -169,7 +169,7 @@
 
         .schedule-grid {
             display: grid;
-            grid-template-columns: var(--time-col-width) repeat(6, var(--col-width));
+            grid-template-columns: var(--time-col-width) repeat(6, minmax(var(--col-width), 1fr));
             position: relative;
             min-width: fit-content;
             padding-bottom: 85px;
