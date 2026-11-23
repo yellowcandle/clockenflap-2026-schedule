@@ -30,6 +30,10 @@
             --text-muted: #5A736A;
             --border-color: #E8BFC2;
             --brand-bg: #E8757C;
+            /* Time-axis labels: brand pink measures 3.90:1 on --header-bg,
+               below the 4.5:1 floor for 11px text. This is the nearest tint
+               that clears it in both modes (5.46 light, 8.46 dark). */
+            --time-label: #F79BA2;
             --header-bg: #164234;
             --header-text: #FFFFFF;
             --time-bg: #FAF3F3;
@@ -142,13 +146,23 @@
             flex: 1;
             text-align: center;
             padding: 14px 0;
+            font-family: inherit;
             font-weight: 700;
             font-size: 13px;
             letter-spacing: 0.03em;
             cursor: pointer;
             opacity: 0.78;
             transition: 0.25s;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            appearance: none;
+            -webkit-appearance: none;
             -webkit-tap-highlight-color: transparent;
+        }
+        .tab:focus-visible {
+            outline: 3px solid var(--tab-active-bg);
+            outline-offset: -3px;
         }
         .tab.active {
             background: var(--tab-active-bg) !important;
@@ -225,7 +239,7 @@
             border-right: 1px solid rgba(255, 255, 255, 0.14);
             font-size: 11px;
             font-weight: 700;
-            color: var(--brand-bg);
+            color: var(--time-label);
             text-align: center;
             z-index: 20;
             display: flex;
@@ -335,7 +349,8 @@
             left: -35px;
             top: -7px;
             background: #E8757C;
-            color: #FFFFFF;
+            /* White on this pink is 2.89:1; the ink is 6.28:1. */
+            color: #001A14;
             font-size: 8px;
             padding: 1px 4px;
             border-radius: 3px;
@@ -525,6 +540,18 @@
             background: rgba(128, 128, 128, 0.15);
             color: var(--text-main);
         }
+        @media (prefers-reduced-motion: reduce) {
+            .artist-block,
+            .tab,
+            .modal-box,
+            .controls button,
+            .btn-modal {
+                transition: none;
+            }
+            .modal-box {
+                animation: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -534,9 +561,9 @@
     </div>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchDay('Fri', this)">DEC 4 (FRI)</div>
-        <div class="tab" onclick="switchDay('Sat', this)">DEC 5 (SAT)</div>
-        <div class="tab" onclick="switchDay('Sun', this)">DEC 6 (SUN)</div>
+        <button type="button" class="tab active" aria-pressed="true" onclick="switchDay('Fri', this)">DEC 4 (FRI)</button>
+        <button type="button" class="tab" aria-pressed="false" onclick="switchDay('Sat', this)">DEC 5 (SAT)</button>
+        <button type="button" class="tab" aria-pressed="false" onclick="switchDay('Sun', this)">DEC 6 (SUN)</button>
     </div>
 
     <div class="schedule-viewport" id="viewport">
@@ -548,7 +575,7 @@
         <button id="btn-reset" onclick="clearWishlist()">Reset Wishlist</button>
     </div>
 
-    <div class="modal-overlay" id="modal">
+    <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="m-artist">
         <div class="modal-box">
             <button class="btn-close" onclick="closeModal()" aria-label="Close">×</button>
             
@@ -1005,6 +1032,21 @@
         if (e.key === 'Escape') closeModal();
     });
 
+    document.getElementById('modal').addEventListener('keydown', function(e) {
+        if (e.key !== 'Tab') return;
+        const focusables = this.querySelectorAll('button, a[href]');
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    });
+
     // --- TIME LINE & CONTROLS ---
     function updateTimeLine() {
         const now = new Date();
@@ -1024,9 +1066,13 @@
 
     function switchDay(day, tabEl) {
         currentDay = day;
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-pressed', 'false');
+        });
         if (tabEl) {
             tabEl.classList.add('active');
+            tabEl.setAttribute('aria-pressed', 'true');
         }
         renderSchedule(day);
         document.getElementById('viewport').scrollTop = 0;
